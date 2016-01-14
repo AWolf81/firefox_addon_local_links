@@ -28,6 +28,13 @@
     "value": true
   },
   {
+    "name": "sambaConfigured",
+    "title": "SMB / AFP configured",
+    "description": "used internally to store that we configured smb / afp protocol handler",
+    "type": "bool",
+    "value": false
+  },
+  {
     "description": "How many of them we have.",
     "name": "myInteger",
     "type": "integer",

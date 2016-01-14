@@ -1,18 +1,26 @@
 "use strict";
 
+/*
+todo:
+- icons not visible, something broken because of the changed selectors
+- smb/afp config not working yet. Retry to manually configure it. What am I missing?
+
+*/
+
 ( function fileLinkAddon( $, self ) {
 
     $.noConflict();
 
-    var fileLinkSelectors = [
-            'a[href^="file://"]',
+    var fileLinkSelector = 'a[href^="file://"]',
+        sambaLinkSelectors = [
             'a[href^="smb://"]',
             'a[href^="afp://"]'
         ],
         $icon = $( "<i/>" )
             .addClass( "material-icons link-icon" ),
         options = {
-            enableLinkIcons: self.options.enableLinkIcons
+            enableLinkIcons: self.options.enableLinkIcons,
+            sambaConfigured: self.options.sambaConfigured
         },
         tooltipFilemanagerText,
         appName,
@@ -24,7 +32,7 @@
     function activate() {
         if ( options.enableLinkIcons ) {
             createObserver();
-            updateLink($(fileLinkSelectors.join(', ')));
+            updateLink($(fileLinkSelector, sambaLinkSelectors));
         }
     }
 
@@ -44,18 +52,35 @@
     // Update settings on change of pref.
     self.port.on( "prefChange", function( data ) {
         options.enableLinkIcons = data.enableLinkIcons;
+    } );
 
+    // remove smb/afp click events --> now handled from firefox directly
+    self.port.on( "undelegateSambaClick", function() {
+        $( document ).off( "click", sambaLinkSelectors.join(", "));
     } );
 
     // Use delegate so the click event is also avaliable at newly added links
-    $( document ).on( "click", fileLinkSelectors.join( ", " ), function( e ) {
+    $( document ).on( "click", fileLinkSelector, function( e ) {
         e.preventDefault(); // prevent default to avoid browser to launch smb://
+        
         console.log( "clicked file link: " + this.href );
         self.postMessage( {
             action: "open",
             url: decodeURIComponent( this.href )
         } );
     } );
+
+    if ( !options.sambaConfigured ) {
+        $( document ).on( "click", sambaLinkSelectors.join(", "), function( e ) {
+            e.preventDefault(); // prevent default to avoid browser to launch smb://
+            
+            console.log( "clicked file link: " + this.href );
+            self.postMessage( {
+                action: "open",
+                url: decodeURIComponent( this.href )
+            } );
+        } );        
+    }
 
 
     // -------------------------------------------------------------------------
@@ -89,7 +114,7 @@
         // observe changes of file links
         // @todo: will fail if the link was added with ajax
         // --> check if observing on document is possible
-        $(fileLinkSelectors.join(', '))
+        $(fileLinkSelector, sambaLinkSelectors.join(', '))
             .observe({ attributes: true, attributeFilter: ['href'] },
                 function(record) {
                 // observe href change
@@ -104,7 +129,7 @@
 
         // observe newly added file links
         $(document)
-            .observe('added', fileLinkSelectors.join(', '),
+            .observe('added', fileLinkSelector, sambaLinkSelectors.join(', '),
                 function(record) {
             // Observe if elements matching 'a[href^="file://"]' have been added
             //
@@ -125,7 +150,7 @@
             	// new nodes
                 console.log('addedNodes', record.addedNodes);
                 var $elements = $(record.addedNodes)
-                    .find(fileLinkSelectors.join(', ')),
+                    .find(fileLinkSelector, sambaLinkSelectors.join(', ')),
                     $element = $elements.length ? $elements: record.addedNodes;
 
                 // elements check needed if links are wrapped in an element
