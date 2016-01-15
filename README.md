@@ -1,3 +1,6 @@
+# This repo is deprecated and not maintained anymore
+The code here will be merged to this repository https://github.com/feinstaub/firefox_addon_local_filesystem_links
+
 # Local links opener Addon
 Adds the behaviour to firefox to open local links file:/// style in windows explorer.
 
